@@ -2,5 +2,5 @@
   "objectifs": "Progresser en design et comprendre l'IA. Suivre l'actu sans anxiété, 15 min par jour. Me détendre sans me vider, et voir plus de films que de vidéos au hasard.",
   "budgets": { "videoMinParJour": 45, "actuMinParJour": 15 },
   "regles": { "pasDeVideoApres": "23:00", "editions": ["07:00", "18:00"] },
-  "limites": { "apprendre": 5, "divertirVideos": 3, "actuSujets": 3 }
+  "limites": { "apprendre": 5, "divertirVideos": 3, "actuSujets": 3, "films": 3 }
 }

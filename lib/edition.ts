@@ -1,4 +1,5 @@
 import { boussole, localNow, sources } from "./config";
+import { complete, syncCine } from "./cine";
 import { curate } from "./curate";
 import { fetchAll } from "./feeds";
 import { accessToken, syncYouTube } from "./google";
@@ -20,6 +21,12 @@ export async function refresh() {
       errors.push(`compte YouTube : ${String(err)}`);
     }
   }
+  try {
+    await syncCine(before, sources);
+    await save(before);
+  } catch (err) {
+    errors.push(`films et séries : ${String(err)}`);
+  }
   // Chaînes de ton compte YouTube + chaînes ajoutées à la main dans config/sources.json.
   const manual = new Set(sources.youtube.map((c) => c.id));
   const youtube = [...sources.youtube, ...(before.youtube?.channels ?? []).filter((c) => !manual.has(c.id))];
@@ -38,6 +45,11 @@ export async function refresh() {
     const fresh = (i: Item) => now - Date.parse(i.published) < (i.universe === "actu" ? 1.5 : 4) * 86_400_000;
     const candidates = Object.values(s.items).filter((i) => fresh(i) && !shown.has(i.id) && !s.feedback[i.id]);
     edition = await curate(candidates, boussole, sources, s, date);
+    // Fiches complètes et liens directs pour les titres proposés.
+    if (s.cine) {
+      const keys = [edition.tonight?.key, ...(edition.decouvrir ?? []).map((d) => d.id)].filter((k): k is string => Boolean(k));
+      await complete(s.cine, keys).catch((err) => errors.push(`fiches : ${String(err)}`));
+    }
     s.editions[date] = edition;
   });
   return { edition: edition!, fetched: items.length, errors };
