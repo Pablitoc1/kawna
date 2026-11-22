@@ -1,0 +1,21 @@
+{
+  "_aide": "Ajoute ici tes sources. Pour importer tes abonnements YouTube : npm run import:youtube -- chemin/vers/abonnements.csv (export Google Takeout). Univers possibles : apprendre, divertir, actu. 'ligne' va de -1 (gauche) à 1 (droite) ; c'est une estimation, ajuste-la.",
+  "youtube": [],
+  "actu": [
+    { "nom": "Le Monde", "flux": "https://www.lemonde.fr/rss/une.xml", "ligne": -0.2 },
+    { "nom": "Libération", "flux": "https://www.liberation.fr/arc/outboundfeeds/rss-all/?outputType=xml", "ligne": -0.6 },
+    { "nom": "Le Figaro", "flux": "https://www.lefigaro.fr/rss/figaro_actualites.xml", "ligne": 0.55 },
+    { "nom": "franceinfo", "flux": "https://www.francetvinfo.fr/titres.rss", "ligne": 0 },
+    { "nom": "Les Echos", "flux": "https://syndication.lesechos.fr/rss/rss_une.xml", "ligne": 0.4 }
+  ],
+  "podcasts": [],
+  "aVoir": [
+    { "titre": "Perfect Days", "type": "movie", "imdb": "tt27503384", "duree": 124, "note": "exemple" },
+    { "titre": "Severance", "type": "series", "imdb": "tt11280740", "note": "exemple" },
+    { "titre": "Shōgun", "type": "series", "imdb": "tt2788316", "note": "exemple" },
+    { "titre": "Past Lives", "type": "movie", "imdb": "tt13238346", "duree": 106, "note": "exemple" }
+  ],
+  "musique": [
+    { "titre": "Ma playlist calme", "lien": "https://music.apple.com/", "type": "Playlist", "note": "remplace par le lien de partage Apple Music" }
+  ]
+}
