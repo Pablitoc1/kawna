@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import type { Boussole, Edition, Item, Sources, State, Verdict } from "./types";
+import { cineCandidates, cineLine } from "./cine";
+import type { Boussole, Edition, Item, Sources, State, Title, Verdict } from "./types";
 
 const CLICKBAIT = /(incroyable|choquant|hallucinant|vous ne (allez|croirez)|tu ne vas pas|personne ne|la vérité sur|insane|shocking|you won'?t believe|!!|\?!|😱|🤯)/i;
 
@@ -56,6 +57,30 @@ function sourceScore(state: State) {
   return score;
 }
 
+/** Films et séries sans IA : ta liste d'abord (ce qui est inclus dans tes abonnements en premier), puis les mieux notés. */
+export function filmsWithRules(state: State, b: Boussole, date: string): Pick<Edition, "tonight" | "decouvrir"> {
+  const { liste, catalogue } = cineCandidates(state, date);
+  const mine = state.services ?? [];
+  const onMine = (t: Title) => (t.dispo ?? []).some((d) => mine.includes(d));
+  const first = liste.find(onMine) ?? liste[0] ?? catalogue[0];
+  const n = b.limites.films ?? 3;
+  const rest = [...catalogue].filter((t) => t.key !== first?.key).sort((x, y) => (y.note ?? 0) - (x.note ?? 0));
+  // Alterne films et séries pour ne pas tout miser sur un format.
+  const films = rest.filter((t) => t.type === "movie");
+  const series = rest.filter((t) => t.type === "series");
+  const mixed: Title[] = [];
+  while (mixed.length < n && (films.length || series.length)) {
+    const f = films.shift();
+    if (f) mixed.push(f);
+    const se = mixed.length < n ? series.shift() : undefined;
+    if (se) mixed.push(se);
+  }
+  return {
+    tonight: first ? { key: first.key, why: liste.includes(first) ? "Dans ta liste depuis un moment." : "Parmi les mieux notés de tes abonnements." } : undefined,
+    decouvrir: mixed.map((t) => ({ id: t.key, why: t.note ? `Noté ${t.note}/10.` : "Inclus dans tes abonnements." })),
+  };
+}
+
 /** Sélection sans IA : récence, filtre anti-racolage, préférence pour les sources bien notées. */
 export function curateWithRules(candidates: Item[], b: Boussole, state: State, date: string): Edition {
   const score = sourceScore(state);
@@ -78,6 +103,7 @@ export function curateWithRules(candidates: Item[], b: Boussole, state: State, d
     topics: topics.map((t) => ({ title: t[0].title, consensus: "", divergence: "", itemIds: t.map((x) => x.id) })),
     learn: learn.map((i) => ({ id: i.id, why: `Nouveau chez ${i.source}, une source que tu suis pour apprendre.` })),
     fun: fun.map((i) => ({ id: i.id, why: `Nouveau chez ${i.source}.` })),
+    ...filmsWithRules(state, b, date),
     discarded: {
       actu: Math.max(0, count("actu") - topics.flat().length),
       divertir: Math.max(0, count("divertir") - fun.length),
@@ -92,8 +118,9 @@ const Schema = z.object({
   topics: z.array(z.object({ title: z.string(), consensus: z.string(), divergence: z.string(), itemIds: z.array(z.string()) })),
   learn: z.array(z.object({ id: z.string(), why: z.string() })),
   fun: z.array(z.object({ id: z.string(), why: z.string() })),
-  tonightImdb: z.string(),
+  tonightKey: z.string(),
   tonightWhy: z.string(),
+  decouvrir: z.array(z.object({ id: z.string(), why: z.string() })),
   discardReasons: z.array(z.string()),
 });
 
@@ -105,7 +132,8 @@ Ce que tu produis, en français, tutoiement, phrases courtes :
 - learn : les contenus « apprendre » qui servent vraiment ses objectifs.
 - fun : les vidéos « divertir » qui détendent sans vider (calmes, de qualité).
 - why : une raison de 15 mots maximum, concrète (objectif servi, retour passé, moment).
-- tonightImdb / tonightWhy : un titre de sa liste « à voir » à proposer ce soir, ou des chaînes vides si rien ne s'y prête.
+- tonightKey / tonightWhy : UN film ou UNE série à proposer ce soir, choisi dans sa liste ou le catalogue de ses abonnements. Privilégie sa liste et ce qui est inclus dans ses abonnements. Tiens compte du jour (un film long le week-end, plus court en semaine). Chaînes vides si rien ne s'y prête.
+- decouvrir : quelques titres du CATALOGUE à découvrir sur ses abonnements, qui collent à ses goûts (notes Trakt) et à ses objectifs. Varie films et séries. Pas de titre déjà proposé ce soir.
 - discardReasons : ce que tu as écarté et pourquoi, chiffré (ex. « 6 titres racoleurs », « 4 réactions à chaud »).
 
 Ses vidéos aimées et ses playlists montrent ses goûts : sers-t'en pour choisir parmi les nouveautés, sans jamais les laisser l'emporter sur ses objectifs.
@@ -122,12 +150,14 @@ function line(i: Item) {
 
 /** Sélection par Claude, avec sortie structurée. Retombe sur les règles en cas d'échec. */
 export async function curate(candidates: Item[], b: Boussole, src: Sources, state: State, date: string): Promise<Edition> {
-  if (!process.env.ANTHROPIC_API_KEY || candidates.length === 0) return curateWithRules(candidates, b, state, date);
+  const hasFilms = Boolean(state.cine?.watchlist.length || state.cine?.catalogue.length);
+  if (!process.env.ANTHROPIC_API_KEY || (candidates.length === 0 && !hasFilms)) return curateWithRules(candidates, b, state, date);
 
   const recentFeedback = Object.entries(state.feedback)
     .sort((x, y) => y[1].at.localeCompare(x[1].at))
     .slice(0, 40)
     .flatMap(([id, f]) => (state.items[id] ? [`${f.verdict} : ${state.items[id].source} | ${state.items[id].title}`] : []));
+  const films = cineCandidates(state, date);
   const by = (u: Item["universe"]) => candidates.filter((i) => i.universe === u).map(line).join("\n") || "(rien)";
 
   const user = `Objectifs de Yahia : ${b.objectifs}
@@ -140,8 +170,17 @@ Ses goûts sur YouTube (vidéos aimées récemment, chaîne | titre) :
 ${state.youtube?.likes.slice(0, 50).join("\n") || "(compte YouTube non connecté)"}
 Ses playlists : ${state.youtube?.playlists.join(", ") || "(aucune)"}
 
-Sa liste « à voir » (films et séries) :
-${src.aVoir.map((a) => `${a.imdb} | ${a.titre} | ${a.type}${a.duree ? ` | ${a.duree} min` : ""}`).join("\n") || "(vide)"}
+Ses abonnements vidéo : ${(state.services ?? []).join(", ") || "(aucun coché)"}. Il a aussi Stremio pour tout le reste.${state.vpn ? ` Il a un VPN (${state.vpn.nom}) : un titre « seulement via VPN » reste proposable, mais préfère ce qui est inclus dans sa région.` : ""}
+Limite films et séries à découvrir : ${b.limites.films ?? 3} max.
+
+Ses notes de films et séries (Trakt) :
+${state.cine?.notes.slice(0, 40).join("\n") || "(aucune)"}
+
+SA LISTE « à voir » (clé | titre | format | durée | note | genres | où | résumé) :
+${films.liste.map((t) => cineLine(t, state.services ?? [], state.vpn)).join("\n") || "(vide)"}
+
+CATALOGUE de ses abonnements (pas encore vus) :
+${films.catalogue.map((t) => cineLine(t, state.services ?? [], state.vpn)).join("\n") || "(vide)"}
 
 Jour : ${date}
 
@@ -177,6 +216,8 @@ ${by("divertir")}`;
     const learn = picks(out.learn, b.limites.apprendre);
     const fun = picks(out.fun, b.limites.divertirVideos);
     const count = (u: Item["universe"]) => candidates.filter((i) => i.universe === u).length;
+    const catKeys = new Set(films.catalogue.map((t) => t.key));
+    const filmKeys = new Set([...films.liste.map((t) => t.key), ...catKeys]);
     return {
       date,
       createdAt: new Date().toISOString(),
@@ -185,7 +226,8 @@ ${by("divertir")}`;
       topics,
       learn,
       fun,
-      tonight: src.aVoir.some((a) => a.imdb === out.tonightImdb) ? { imdb: out.tonightImdb, why: out.tonightWhy } : undefined,
+      tonight: filmKeys.has(out.tonightKey) ? { key: out.tonightKey, why: out.tonightWhy } : undefined,
+      decouvrir: out.decouvrir.filter((d) => catKeys.has(d.id) && d.id !== out.tonightKey).slice(0, b.limites.films ?? 3),
       discarded: {
         actu: Math.max(0, count("actu") - topics.flatMap((t) => t.itemIds).length),
         divertir: Math.max(0, count("divertir") - fun.length),

@@ -40,7 +40,10 @@ export interface Edition {
   topics: Topic[];
   learn: Pick[];
   fun: Pick[];
-  tonight?: { imdb: string; why: string };
+  /** Le film ou la série proposé ce soir (clé de Title). Les anciennes éditions ont un imdb. */
+  tonight?: { key?: string; imdb?: string; why: string };
+  /** Quelques titres à découvrir sur tes abonnements. */
+  decouvrir?: Pick[];
   discarded: { actu: number; divertir: number; apprendre: number; reasons: string[] };
 }
 
@@ -48,6 +51,8 @@ export interface DayLog {
   videoMin: number;
   actuMin: number;
   extraMin: number;
+  /** Films et séries, comptés à part du budget vidéo. */
+  filmMin?: number;
 }
 
 export interface State {
@@ -65,13 +70,68 @@ export interface State {
     playlists: string[];
     syncedAt: string;
   };
+  /** Ton pseudo Letterboxd : kawna lit ton journal (films vus, notes) via son flux RSS public. */
+  letterboxd?: string;
+  /** Le film ou l'épisode en cours, ouvert depuis kawna. */
+  seance?: { key: string; titre: string; startedAt: string; minutes: number };
+  /** VPN : kawna regarde aussi les catalogues de ces pays (codes ISO, ex. US, GB). */
+  vpn?: { nom: string; pays: string[] };
+  /** Garde iPhone : les applis s'ouvrent via le raccourci « kawna » (voir lib/garde.ts). */
+  garde?: boolean;
+  /** Les services vidéo auxquels tu es abonné (clés de lib/services.ts). */
+  services?: string[];
+  /** Connexion Trakt : ce que tu regardes, ta liste, tes notes. */
+  trakt?: { accessToken: string; refreshToken: string; expiresAt: number; connectedAt: string };
+  /** Films et séries : ta liste, ce que tu as vu, et le catalogue de tes abonnements. */
+  cine?: Cine;
+}
+
+/** Un film ou une série. La clé est « movie:123 » ou « series:456 » (identifiants TMDB). */
+export interface Title {
+  key: string;
+  tmdb: number;
+  imdb?: string;
+  type: "movie" | "series";
+  titre: string;
+  annee?: string;
+  duree?: number;
+  saisons?: number;
+  poster?: string;
+  fond?: string;
+  resume?: string;
+  /** Note moyenne TMDB sur 10. */
+  note?: number;
+  genres?: string[];
+  /** Les services de ton choix où le titre est inclus dans l'abonnement, et la page « où regarder ». */
+  dispo?: string[];
+  ouRegarder?: string;
+  /** Hors de ta région : pays où le titre est inclus, par service (pour un VPN). */
+  ailleurs?: Record<string, string[]>;
+  /** Liens directs vers la fiche du titre dans l'appli de chaque service (Wikidata). */
+  liens?: Record<string, string>;
+  detailsAt?: string;
+}
+
+export interface Cine {
+  titles: Record<string, Title>;
+  /** Ta liste « à voir » (Trakt, sinon config/sources.json). */
+  watchlist: string[];
+  /** Le catalogue de tes abonnements que kawna peut te proposer. */
+  catalogue: string[];
+  /** Ce que tu as déjà vu (clés). */
+  vus: string[];
+  /** Tes notes Trakt, pour les goûts : « 9/10 | Past Lives (2023) ». */
+  notes: string[];
+  /** Identifiants TMDB des services, et leur logo. */
+  providers?: Record<string, { ids: number[]; logo?: string }>;
+  syncedAt: string;
 }
 
 export interface Boussole {
   objectifs: string;
   budgets: { videoMinParJour: number; actuMinParJour: number };
   regles: { pasDeVideoApres: string; editions: string[] };
-  limites: { apprendre: number; divertirVideos: number; actuSujets: number };
+  limites: { apprendre: number; divertirVideos: number; actuSujets: number; films?: number };
 }
 
 export interface Sources {
