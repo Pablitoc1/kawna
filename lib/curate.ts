@@ -108,6 +108,8 @@ Ce que tu produis, en français, tutoiement, phrases courtes :
 - tonightImdb / tonightWhy : un titre de sa liste « à voir » à proposer ce soir, ou des chaînes vides si rien ne s'y prête.
 - discardReasons : ce que tu as écarté et pourquoi, chiffré (ex. « 6 titres racoleurs », « 4 réactions à chaud »).
 
+Ses vidéos aimées et ses playlists montrent ses goûts : sers-t'en pour choisir parmi les nouveautés, sans jamais les laisser l'emporter sur ses objectifs.
+
 Écarte : titres racoleurs, miniatures et titres trompeurs, réactions à chaud, doublons, contenus hors de ses objectifs, compilations interminables. Tiens compte de ses retours : une source souvent notée « non » ou « bof » descend. Respecte strictement les limites données. Utilise uniquement les identifiants fournis.`;
 
 function line(i: Item) {
@@ -133,6 +135,10 @@ Limites : apprendre ${b.limites.apprendre} max, divertir ${b.limites.divertirVid
 
 Ses derniers retours (« ça valait le coup ? ») :
 ${recentFeedback.join("\n") || "(aucun pour l'instant)"}
+
+Ses goûts sur YouTube (vidéos aimées récemment, chaîne | titre) :
+${state.youtube?.likes.slice(0, 50).join("\n") || "(compte YouTube non connecté)"}
+Ses playlists : ${state.youtube?.playlists.join(", ") || "(aucune)"}
 
 Sa liste « à voir » (films et séries) :
 ${src.aVoir.map((a) => `${a.imdb} | ${a.titre} | ${a.type}${a.duree ? ` | ${a.duree} min` : ""}`).join("\n") || "(vide)"}

@@ -27,19 +27,25 @@ Tout est dans `config/` :
 - `config/boussole.json` : objectifs en texte libre, budgets, heure du mode soir, limites par univers.
 - `config/sources.json` : chaînes YouTube, flux d'actu (avec leur ligne éditoriale de -1 à 1), podcasts, liste « à voir » (identifiants IMDb pour Stremio), liens Apple Music.
 
-Importer ses abonnements YouTube depuis Google Takeout (YouTube → abonnements → `abonnements.csv`) :
+### Compte YouTube
 
-```bash
-npm run import:youtube -- ~/Downloads/abonnements.csv apprendre
-```
+Dans l'onglet **Moi**, « Se connecter avec Google » donne à kawna un accès en lecture seule à ton compte YouTube. kawna lit tes abonnements (dont il suit les nouvelles vidéos), tes vidéos aimées et tes playlists (pour connaître tes goûts). Claude range chaque chaîne dans Apprendre ou Divertir. Le compte est relu toutes les 12 h.
 
-Les chaînes arrivent dans l'univers choisi ; range-les ensuite entre `apprendre` et `divertir`.
+Réglage unique dans [Google Cloud](https://console.cloud.google.com) :
+
+1. Créer un projet « kawna ».
+2. « API et services » → Bibliothèque → activer **YouTube Data API v3**.
+3. « Google Auth Platform » → Branding : nom « kawna », ton e-mail. Audience : « Externe », puis **Publier l'application** (en mode test, Google déconnecte kawna tous les 7 jours). Google affichera « application non validée » à la connexion : c'est normal pour une appli personnelle, clique sur « Paramètres avancés » puis « Accéder à kawna ».
+4. Clients → Créer un client → « Application Web ». URI de redirection autorisée : `https://TON-SITE.vercel.app/api/google/callback` (et `http://localhost:3000/api/google/callback` pour le local).
+5. Copier l'ID client et le secret dans `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET`.
+
+Sans compte connecté, on peut aussi lister des chaînes à la main dans `config/sources.json`, ou les importer depuis Google Takeout : `npm run import:youtube -- abonnements.csv apprendre`.
 
 ## Mettre en ligne (gratuit)
 
 1. Importer le dépôt sur [Vercel](https://vercel.com/new).
 2. Dans Vercel → Storage, ajouter **Upstash Redis** (offre gratuite) : les variables `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` sont ajoutées toutes seules.
-3. Ajouter les variables `KAWNA_PASSWORD`, `ANTHROPIC_API_KEY`, `CRON_SECRET` (et si tu veux `YOUTUBE_API_KEY`, `TMDB_API_KEY`).
+3. Ajouter les variables `KAWNA_PASSWORD`, `ANTHROPIC_API_KEY`, `CRON_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (et si tu veux `TMDB_API_KEY`).
 4. Le fichier `vercel.json` compose l'édition à 6 h et 17 h (heure de Paris en hiver).
 5. Sur iPhone : ouvrir le site dans Safari → Partager → « Sur l'écran d'accueil ».
 

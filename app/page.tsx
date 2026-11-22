@@ -52,8 +52,8 @@ export default async function Home() {
           </Link>
         ))}
       </div>
-      {sources.youtube.length === 0 ? (
-        <p className="mute">Aucune chaîne YouTube configurée pour l&apos;instant : importe tes abonnements (voir le README).</p>
+      {sources.youtube.length === 0 && !state.google ? (
+        <Link href="/moi" className="empty"><b>Connecte ton compte YouTube</b>Dans l&apos;onglet Moi, pour que kawna lise tes abonnements.</Link>
       ) : null}
     </main>
   );
