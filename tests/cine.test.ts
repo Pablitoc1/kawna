@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cineCandidates, syncCine } from "@/lib/cine";
 import { filmsWithRules } from "@/lib/curate";
-import { guard, viaShortcut } from "@/lib/garde";
+import { guard, seanceMinutes, viaShortcut } from "@/lib/garde";
+import { letterboxdFilm, parseLetterboxd } from "@/lib/letterboxd";
 import { matchProviders, meilleurPays, ouvrir } from "@/lib/services";
 import type { Boussole, Sources, State } from "@/lib/types";
 
@@ -42,8 +43,8 @@ describe("garde iPhone", () => {
   it("passe par le raccourci sur iPhone seulement, quand elle est active", () => {
     const url = "https://www.netflix.com/title/80057281";
     const ios = "Mozilla/5.0 (iPhone; CPU iPhone OS 26_1 like Mac OS X)";
-    expect(guard(url, { on: true, ua: ios })).toBe(viaShortcut(url));
-    expect(viaShortcut(url)).toBe(`shortcuts://run-shortcut?name=kawna&input=text&text=${encodeURIComponent(url)}`);
+    expect(guard(url, { on: true, ua: ios }, 111)).toBe(viaShortcut(url, 111));
+    expect(viaShortcut(url, 111)).toBe(`shortcuts://run-shortcut?name=kawna&input=text&text=${encodeURIComponent(`111|${url}`)}`);
     expect(guard(url, { on: false, ua: ios })).toBe(url);
     expect(guard(url, { on: true, ua: "Mozilla/5.0 (Macintosh)" })).toBe(url);
   });
@@ -72,6 +73,8 @@ describe("catalogue des abonnements", () => {
       if (url.includes("/sync/watched/movies")) return json([{ movie: { title: "Vu déjà", ids: { tmdb: 1 } } }]);
       if (url.includes("/sync/ratings/movies")) return json([{ rating: 9, movie: { title: "Aftersun", year: 2022, ids: { tmdb: 2 } } }]);
       if (url.includes("/sync/")) return json([]);
+      if (url.startsWith("https://letterboxd.com/"))
+        return new Response(`<rss><channel><item><letterboxd:filmTitle>Aftersun</letterboxd:filmTitle><letterboxd:filmYear>2022</letterboxd:filmYear><letterboxd:memberRating>4</letterboxd:memberRating><tmdb:movieId>2</tmdb:movieId></item></channel></rss>`, { status: 200 });
       return new Response("{}", { status: 404 });
     });
     return calls;
@@ -97,11 +100,36 @@ describe("catalogue des abonnements", () => {
     expect(e.decouvrir!.map((d) => d.id)).not.toContain("movie:10");
   });
 
+  it("ce que tu as vu sur Letterboxd n'est plus proposé, et tes étoiles deviennent des notes", async () => {
+    mock();
+    const s: State = { ...empty(), services: ["netflix"], letterboxd: "yahia" };
+    await syncCine(s, src, true);
+    expect(s.cine!.catalogue).not.toContain("movie:2");
+    expect(s.cine!.notes[0]).toBe("8/10 | Aftersun (2022) (Letterboxd)");
+  });
+
   it("ne repropose pas cette semaine un titre déjà proposé", async () => {
     mock();
     const s: State = { ...empty(), services: ["netflix"] };
     await syncCine(s, src, true);
     s.editions["2026-11-21"] = { date: "2026-11-21", decouvrir: [{ id: "movie:2", why: "" }] } as State["editions"][string];
     expect(cineCandidates(s, "2026-11-22").catalogue.map((t) => t.key)).not.toContain("movie:2");
+  });
+});
+
+describe("séance et Letterboxd", () => {
+  it("cale la minuterie sur le film ou l'épisode", () => {
+    expect(seanceMinutes({ type: "movie", duree: 106 })).toBe(111);
+    expect(seanceMinutes({ type: "series" })).toBe(50);
+  });
+
+  it("lit le journal Letterboxd : film, étoiles, date, identifiant TMDB ; ignore les listes", () => {
+    const xml = `<rss xmlns:letterboxd="https://letterboxd.com" xmlns:tmdb="https://themoviedb.org"><channel>
+      <item><title>Aftersun, 2022 - ★★★★½</title><letterboxd:watchedDate>2026-11-20</letterboxd:watchedDate><letterboxd:rewatch>No</letterboxd:rewatch>
+        <letterboxd:filmTitle>Aftersun</letterboxd:filmTitle><letterboxd:filmYear>2022</letterboxd:filmYear><letterboxd:memberRating>4.5</letterboxd:memberRating><tmdb:movieId>965150</tmdb:movieId></item>
+      <item><title>Une liste</title></item>
+    </channel></rss>`;
+    expect(parseLetterboxd(xml)).toEqual([{ key: "movie:965150", titre: "Aftersun", annee: "2022", note: 4.5, vuLe: "2026-11-20" }]);
+    expect(letterboxdFilm(965150)).toBe("https://letterboxd.com/tmdb/965150/");
   });
 });

@@ -44,7 +44,7 @@ export default async function TitrePage({ params }: { params: Promise<{ type: st
       {isNight() ? (
         <div className="night"><span aria-hidden="true">☾</span>Il est tard. Garde-le pour demain soir.</div>
       ) : (
-        <OpenButtons ways={ways} cine={state.cine} garde={{ on: Boolean(state.garde), ua }} vpnNom={state.vpn?.nom} />
+        <OpenButtons t={t} ways={ways} cine={state.cine} garde={{ on: Boolean(state.garde), ua }} vpnNom={state.vpn?.nom} />
       )}
       <div className="empty">Pas de bande-annonce automatique. Pas de « tu aimeras aussi ».</div>
     </main>

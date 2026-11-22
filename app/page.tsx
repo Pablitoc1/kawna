@@ -1,3 +1,4 @@
+import { SeanceBanner } from "@/components/Seance";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Cover, minutes } from "@/components/visuals";
@@ -14,6 +15,7 @@ export default async function Home() {
     return (
       <main className="page">
         <Header state={state} />
+        <SeanceBanner state={state} />
         <div className="empty">
           <b>Pas encore d&apos;édition</b>
           Ajoute tes sources dans config/sources.json, puis ouvre l&apos;onglet Moi pour composer la première édition.
@@ -36,6 +38,7 @@ export default async function Home() {
   return (
     <main className="page">
       <Header state={state} />
+      <SeanceBanner state={state} />
       {night ? (
         <div className="night">
           <span aria-hidden="true">☾</span>Il est tard : plus de vidéo jusqu&apos;à 7 h. Audio et lecture seulement.

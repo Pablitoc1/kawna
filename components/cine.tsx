@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { guard } from "@/lib/garde";
+import { guard, seanceMinutes } from "@/lib/garde";
+import { OpenLink } from "./OpenLink";
 import { drapeau, nomPays, service, type Ouvrir } from "@/lib/services";
 import type { Cine, Title } from "@/lib/types";
 import { Badge, Cover, minutes } from "./visuals";
@@ -48,21 +49,22 @@ function VpnStep({ pays, vpn }: { pays: string; vpn: string }) {
   );
 }
 
-export function OpenButtons({ ways, cine, light, garde, vpnNom = "ton VPN" }: { ways: Ouvrir[]; cine?: Cine; light?: boolean; garde?: { on: boolean; ua: string }; vpnNom?: string }) {
+export function OpenButtons({ t, ways, cine, light, garde, vpnNom = "ton VPN" }: { t: Title; ways: Ouvrir[]; cine?: Cine; light?: boolean; garde?: { on: boolean; ua: string }; vpnNom?: string }) {
   if (!ways.length) return null;
   const g = garde ?? { on: false, ua: "" };
-  const [main, ...rest] = ways.map((w) => ({ ...w, url: guard(w.url, g) }));
+  const seance = { key: t.key, titre: t.titre, minutes: seanceMinutes(t) };
+  const [main, ...rest] = ways.map((w) => ({ ...w, url: guard(w.url, g, seance.minutes) }));
   return (
     <div className="open">
       {main.pays ? <VpnStep pays={main.pays} vpn={vpnNom} /> : null}
-      <a className={light ? "cta" : "pill solid"} href={main.url} target={main.key === "stremio" ? undefined : "_blank"} rel="noreferrer">
+      <OpenLink className={light ? "cta" : "pill solid"} href={main.url} seance={seance}>
         {main.key === "stremio" ? <Badge name="Stremio" color={main.couleur} /> : <ServiceMark k={main.key} cine={cine} />}
         Ouvrir dans {main.nom}{main.pays ? ` ${drapeau(main.pays)}` : ""}
-      </a>
+      </OpenLink>
       {rest.map((w) => (
-        <a key={w.key + (w.pays ?? "")} className="pill" href={w.url} target={w.key === "stremio" ? undefined : "_blank"} rel="noreferrer" title={w.pays ? `Avec ton VPN : ${nomPays(w.pays)}` : undefined}>
+        <OpenLink key={w.key + (w.pays ?? "")} className="pill" href={w.url} seance={seance} title={w.pays ? `Avec ton VPN : ${nomPays(w.pays)}` : undefined}>
           {w.nom}{w.pays ? ` ${drapeau(w.pays)}` : ""}
-        </a>
+        </OpenLink>
       ))}
     </div>
   );

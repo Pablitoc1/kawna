@@ -177,3 +177,9 @@ h1.u { font-family: var(--display); font-weight: 800; font-size: 32px; letter-sp
 .vpnstep { display: flex; align-items: center; gap: 8px; font-size: 13px; width: 100%; }
 .vpnstep i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 800; background: rgba(255,255,255,.18); flex: none; }
 .field { font: inherit; font-size: 14px; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+.seance { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; }
+.seance > span:first-child { display: grid; gap: 2px; min-width: 0; }
+.seance b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seance small { color: var(--mute); font-size: 12px; }
+.seance .pill { white-space: nowrap; font-size: 13px; padding: 8px 12px; }
+.fin { align-content: start; }

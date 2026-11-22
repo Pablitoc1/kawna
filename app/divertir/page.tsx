@@ -1,3 +1,4 @@
+import { SeanceBanner } from "@/components/Seance";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { Discarded, End, Picks } from "@/components/cards";
@@ -30,6 +31,7 @@ export default async function Divertir() {
   return (
     <main className="page">
       <Header title="Divertir" color="var(--fun)" state={state} />
+      <SeanceBanner state={state} />
       {tonight && !night ? (
         <div className="hero">
           <Cover src={tonight.fond ?? tonight.poster} seed={tonight.titre} w={560} h={300} />
@@ -37,7 +39,7 @@ export default async function Divertir() {
             <span className="chip">Ce soir · {meta(tonight)}</span>
             <Link href={titleHref(tonight)} style={{ color: "#fff" }}><b>{tonight.titre}</b></Link>
             {edition?.tonight?.why ? <span style={{ fontSize: 13 }}>{edition.tonight.why}</span> : null}
-            <OpenButtons ways={ouvrir(tonight, mine, state.vpn).slice(0, 1)} cine={cine} light garde={garde} vpnNom={state.vpn?.nom} />
+            <OpenButtons t={tonight} ways={ouvrir(tonight, mine, state.vpn).slice(0, 1)} cine={cine} light garde={garde} vpnNom={state.vpn?.nom} />
           </div>
         </div>
       ) : null}

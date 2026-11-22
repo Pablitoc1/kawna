@@ -130,10 +130,19 @@ export default async function Moi({ searchParams }: { searchParams: Promise<{ go
         )}
       </section>
 
+      <section className="card stack" id="letterboxd">
+        <div className="rowhead" style={{ margin: 0 }}><h2>Letterboxd</h2><small>{state.letterboxd ?? "non relié"}</small></div>
+        <span className="mute">Note tes films dans Letterboxd comme d&apos;habitude : kawna lit ton journal (vus, étoiles) pour mieux choisir. À la fin d&apos;un film, un bouton t&apos;y emmène.</span>
+        <form method="post" action="/api/letterboxd" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input className="field" name="user" defaultValue={state.letterboxd ?? ""} placeholder="ton pseudo" aria-label="Pseudo Letterboxd" style={{ width: 160 }} />
+          <button className="pill" type="submit">{state.letterboxd ? "Mettre à jour" : "Relier"}</button>
+        </form>
+      </section>
+
       <section className="card stack" id="garde">
         <div className="rowhead" style={{ margin: 0 }}><h2>Garde iPhone</h2><small>{state.garde ? "active" : "inactive"}</small></div>
         <span className="mute">
-          Quand elle est active, kawna ouvre Netflix, Canal+, Stremio… via le raccourci « {SHORTCUT} ». Une automatisation Raccourcis te renvoie à l&apos;accueil si tu ouvres l&apos;appli sans passer par kawna. Réglages : voir le README.
+          Quand elle est active, kawna ouvre Netflix, Canal+, Stremio… via le raccourci « {SHORTCUT} », qui lance aussi une minuterie de la durée du film ou de l&apos;épisode : à la fin, la lecture s&apos;arrête. Si tu ouvres l&apos;appli sans passer par kawna, tu es renvoyé à l&apos;accueil ; quand tu la quittes, tu reviens sur kawna. Réglages : voir le README.
         </span>
         <form method="post" action="/api/garde">
           <input type="hidden" name="on" value={state.garde ? "0" : "1"} />

@@ -1,5 +1,6 @@
 import { SERVICES } from "./services";
 import { details, discover, findByImdb, providers, tmdbConfigured } from "./tmdb";
+import { readLetterboxd } from "./letterboxd";
 import { readTrakt, traktAccess } from "./trakt";
 import type { Cine, Edition, Sources, State, Title } from "./types";
 import { directLinks } from "./wikidata";
@@ -59,6 +60,18 @@ export async function syncCine(s: State, src: Sources, force = false) {
       keys.push(t.key);
     });
     cine.watchlist = src.aVoir.flatMap((a) => keys.filter((k) => cine.titles[k].imdb === a.imdb));
+  }
+
+  // Letterboxd : ton journal compte comme « vu », tes étoiles (sur 5) comme des notes sur 10.
+  if (s.letterboxd) {
+    try {
+      const j = await readLetterboxd(s.letterboxd);
+      cine.vus = [...new Set([...cine.vus, ...j.map((x) => x.key)])];
+      const fromLb = j.filter((x) => x.note !== undefined).map((x) => `${x.note! * 2}/10 | ${x.titre}${x.annee ? ` (${x.annee})` : ""} (Letterboxd)`);
+      cine.notes = [...fromLb, ...cine.notes.filter((n) => !n.endsWith("(Letterboxd)"))].slice(0, 80);
+    } catch (err) {
+      console.error("kawna: flux Letterboxd illisible", err);
+    }
   }
 
   const mine = s.services ?? [];

@@ -51,6 +51,8 @@ export interface DayLog {
   videoMin: number;
   actuMin: number;
   extraMin: number;
+  /** Films et séries, comptés à part du budget vidéo. */
+  filmMin?: number;
 }
 
 export interface State {
@@ -68,6 +70,10 @@ export interface State {
     playlists: string[];
     syncedAt: string;
   };
+  /** Ton pseudo Letterboxd : kawna lit ton journal (films vus, notes) via son flux RSS public. */
+  letterboxd?: string;
+  /** Le film ou l'épisode en cours, ouvert depuis kawna. */
+  seance?: { key: string; titre: string; startedAt: string; minutes: number };
   /** VPN : kawna regarde aussi les catalogues de ces pays (codes ISO, ex. US, GB). */
   vpn?: { nom: string; pays: string[] };
   /** Garde iPhone : les applis s'ouvrent via le raccourci « kawna » (voir lib/garde.ts). */

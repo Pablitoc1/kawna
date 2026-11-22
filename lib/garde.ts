@@ -7,12 +7,18 @@ export const SHORTCUT = "kawna";
 
 export const isIOS = (ua: string) => /iPhone|iPad|iPod/i.test(ua);
 
-/** Lien qui lance le raccourci avec l'URL à ouvrir. */
-export const viaShortcut = (url: string) =>
-  `shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT)}&input=text&text=${encodeURIComponent(url)}`;
+/**
+ * Lien qui lance le raccourci. Le texte transmis est « minutes|url » : le raccourci lance une minuterie
+ * de cette durée (fin : « Arrêter la lecture ») puis ouvre l'URL.
+ */
+export const viaShortcut = (url: string, minutes = 0) =>
+  `shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT)}&input=text&text=${encodeURIComponent(`${minutes}|${url}`)}`;
 
 /** Hors iPhone, ou garde désactivée, les liens restent directs. */
-export function guard(url: string, opts: { on: boolean; ua: string }) {
+export function guard(url: string, opts: { on: boolean; ua: string }, minutes = 0) {
   if (!opts.on || !isIOS(opts.ua) || url.startsWith("shortcuts:")) return url;
-  return viaShortcut(url);
+  return viaShortcut(url, minutes);
 }
+
+/** Durée d'une séance : le film, ou un épisode, plus 5 minutes pour le générique. */
+export const seanceMinutes = (t: { type: "movie" | "series"; duree?: number }) => (t.duree ?? (t.type === "movie" ? 110 : 45)) + 5;
