@@ -2,18 +2,30 @@ import { Header } from "@/components/Header";
 import { Recompose } from "@/components/Recompose";
 import { Badge, Ring, minutes } from "@/components/visuals";
 import { boussole, sources } from "@/lib/config";
+import { googleConfigured } from "@/lib/google";
 import { load } from "@/lib/store";
 import { weekStats } from "@/lib/edition";
 
 export const dynamic = "force-dynamic";
 
-export default async function Moi() {
+const GOOGLE_MSG: Record<string, string> = {
+  ok: "YouTube est connecté. Tes abonnements seront dans la prochaine édition.",
+  refus: "La connexion a été annulée.",
+  erreur: "La connexion à Google a échoué. Réessaie dans un instant.",
+  config: "Il manque GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET dans les réglages Vercel.",
+  deconnecte: "YouTube est déconnecté.",
+};
+
+export default async function Moi({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
+  const { google } = await searchParams;
   const state = await load();
+  const yt = state.youtube;
+  const byUni = (u: string) => yt?.channels.filter((c) => c.univers === u).length ?? 0;
   const w = weekStats(state);
   const weekVideoBudget = boussole.budgets.videoMinParJour * 7;
   const weekActuBudget = boussole.budgets.actuMinParJour * 7;
   const srcs = [
-    { name: "YouTube", n: sources.youtube.length, color: "#d63a3a" },
+    { name: "YouTube", n: sources.youtube.length + (yt?.channels.length ?? 0), color: "#d63a3a" },
     { name: "Actu", n: sources.actu.length, color: "#e8862e" },
     { name: "Podcasts", n: sources.podcasts.length, color: "#8b4fd1" },
     { name: "Stremio", n: sources.aVoir.length, color: "#7b5bd6" },
@@ -32,6 +44,28 @@ export default async function Moi() {
         <div className="big">{w.worth === null ? "–" : `${w.worth} %`}</div>
         <span className="mute">valait le coup<br />{w.overruns} dépassement{w.overruns > 1 ? "s" : ""} de budget</span>
       </div>
+
+      <section className="card stack">
+        <div className="rowhead" style={{ margin: 0 }}><h2>Ton compte YouTube</h2><Badge name="YT" color="#d63a3a" /></div>
+        {google && GOOGLE_MSG[google] ? <span className="mute" role="status">{GOOGLE_MSG[google]}</span> : null}
+        {state.google ? (
+          <>
+            <span>
+              Connecté en lecture seule. {yt ? `${yt.channels.length} abonnements (${byUni("apprendre")} pour apprendre, ${byUni("divertir")} pour te divertir), ${yt.likes.length} vidéos aimées, ${yt.playlists.length} playlists.` : "Lecture en cours…"}
+            </span>
+            <form method="post" action="/api/google/disconnect"><button className="pill" type="submit">Déconnecter YouTube</button></form>
+          </>
+        ) : (
+          <>
+            <span className="mute">kawna lit tes abonnements, tes vidéos aimées et tes playlists pour savoir quoi te proposer. Il ne peut rien publier ni modifier.</span>
+            {googleConfigured() ? (
+              <a className="pill solid" href="/api/google/connect" style={{ width: "fit-content" }}>Se connecter avec Google</a>
+            ) : (
+              <span className="mute">Pour activer la connexion, ajoute GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET (voir le README).</span>
+            )}
+          </>
+        )}
+      </section>
 
       <section className="card stack">
         <div className="rowhead" style={{ margin: 0 }}><h2>Ta boussole</h2></div>

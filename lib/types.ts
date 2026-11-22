@@ -56,6 +56,15 @@ export interface State {
   days: Record<string, DayLog>;
   feedback: Record<string, { verdict: Verdict; at: string }>;
   ruleProposal?: { text: string; status: "proposee" | "acceptee" | "refusee" };
+  /** Connexion Google en lecture seule (YouTube). */
+  google?: { refreshToken: string; connectedAt: string };
+  /** Ce que kawna a lu de ton compte YouTube. */
+  youtube?: {
+    channels: { id: string; nom: string; univers: Universe }[];
+    likes: string[];
+    playlists: string[];
+    syncedAt: string;
+  };
 }
 
 export interface Boussole {

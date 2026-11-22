@@ -83,16 +83,17 @@ async function get(url: string) {
   return res.text();
 }
 
-/** Ajoute la durée des vidéos via l'API YouTube Data (clé optionnelle, quota gratuit). */
-async function addDurations(items: Item[]) {
+/** Ajoute la durée des vidéos via l'API YouTube Data : compte Google connecté, ou clé API. */
+async function addDurations(items: Item[], accessToken?: string) {
   const key = process.env.YOUTUBE_API_KEY;
   const vids = items.filter((i) => i.youtubeId && !i.durationMin);
-  if (!key || !vids.length) return;
+  if ((!key && !accessToken) || !vids.length) return;
   for (let k = 0; k < vids.length; k += 50) {
     const batch = vids.slice(k, k + 50);
-    const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${batch.map((v) => v.youtubeId).join(",")}&key=${key}`;
+    const ids = batch.map((v) => v.youtubeId).join(",");
+    const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${ids}${accessToken ? "" : `&key=${key}`}`;
     try {
-      const data = (await (await fetch(url)).json()) as { items?: { id: string; contentDetails: { duration: string } }[] };
+      const data = (await (await fetch(url, accessToken ? { headers: { authorization: `Bearer ${accessToken}` } } : {})).json()) as { items?: { id: string; contentDetails: { duration: string } }[] };
       for (const d of data.items ?? []) {
         const m = d.contentDetails.duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
         if (!m) continue;
@@ -107,7 +108,7 @@ async function addDurations(items: Item[]) {
 }
 
 /** Récupère toutes les sources configurées. Une source en panne n'arrête pas les autres. */
-export async function fetchAll(src: Sources, since = Date.now() - 4 * 86_400_000) {
+export async function fetchAll(src: Sources, since = Date.now() - 4 * 86_400_000, accessToken?: string) {
   const jobs: Promise<Item[]>[] = [
     ...src.youtube.map((c) =>
       get(`https://www.youtube.com/feeds/videos.xml?channel_id=${c.id}`).then((x) => parseFeed(x, { source: c.nom, universe: c.univers, kind: "video" })),
@@ -120,7 +121,7 @@ export async function fetchAll(src: Sources, since = Date.now() - 4 * 86_400_000
   const items = results
     .flatMap((r) => (r.status === "fulfilled" ? r.value : []))
     .filter((i) => Date.parse(i.published) >= since);
-  await addDurations(items);
+  await addDurations(items, accessToken);
   // Les Shorts (moins de 2 min) sont écartés d'office.
   return { items: items.filter((i) => !(i.youtubeId && i.durationMin !== undefined && i.durationMin < 2)), errors };
 }

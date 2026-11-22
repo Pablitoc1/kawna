@@ -1,13 +1,31 @@
 import { boussole, localNow, sources } from "./config";
 import { curate } from "./curate";
 import { fetchAll } from "./feeds";
-import { load, update } from "./store";
+import { accessToken, syncYouTube } from "./google";
+import { load, save, update } from "./store";
 import type { DayLog, Edition, Item, State } from "./types";
 
 /** Récupère les sources, garde ce qui n'a jamais été proposé, et compose l'édition du jour. */
 export async function refresh() {
   const { date } = localNow();
-  const { items, errors } = await fetchAll(sources);
+  const before = await load();
+  const errors: string[] = [];
+  let token: string | undefined;
+  if (before.google) {
+    try {
+      await syncYouTube(before, boussole);
+      await save(before);
+      token = await accessToken(before.google.refreshToken);
+    } catch (err) {
+      errors.push(`compte YouTube : ${String(err)}`);
+    }
+  }
+  // Chaînes de ton compte YouTube + chaînes ajoutées à la main dans config/sources.json.
+  const manual = new Set(sources.youtube.map((c) => c.id));
+  const youtube = [...sources.youtube, ...(before.youtube?.channels ?? []).filter((c) => !manual.has(c.id))];
+  const fetched = await fetchAll({ ...sources, youtube }, undefined, token);
+  const items = fetched.items;
+  errors.push(...fetched.errors);
   let edition: Edition | undefined;
   await update(async (s) => {
     for (const it of items) s.items[it.id] = { ...s.items[it.id], ...it };
