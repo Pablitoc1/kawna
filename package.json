@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "import:youtube": "node scripts/import-youtube-takeout.mjs"
+    "import:youtube": "node scripts/import-youtube-takeout.mjs",
+    "iphone": "node scripts/iphone.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.12.0",

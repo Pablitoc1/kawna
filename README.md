@@ -88,6 +88,20 @@ Limites, à dire franchement :
 
 Letterboxd n'a pas d'API publique (accès sur demande). kawna lit ton journal via le flux RSS public de ton profil : les 50 derniers films, tes étoiles et l'identifiant TMDB. Dans Moi → Letterboxd, indique ton pseudo. Les films vus ne sont plus proposés, et tes notes guident Claude. À la fin d'un film, « Noter sur Letterboxd » ouvre sa fiche. kawna ne peut pas écrire dans Letterboxd.
 
+## Tester sur ton iPhone sans héberger
+
+Le Mac sert de serveur, l'iPhone s'y connecte par le Wi-Fi. Rien n'est en ligne.
+
+1. Sur le Mac : `git clone https://github.com/Pablitoc1/kawna && cd kawna && git checkout abonnements && npm install`.
+2. `cp .env.example .env.local`, puis remplis ce que tu veux tester : `TMDB_API_KEY` (films et séries), `ANTHROPIC_API_KEY` (le choix par Claude ; sans clé, des règles simples), `GOOGLE_*`, `TRAKT_*`. Laisse `KAWNA_PASSWORD` vide en local.
+3. `npm run iphone` : l'adresse à ouvrir sur l'iPhone s'affiche (ex. `http://192.168.1.23:3000`). Si le Mac demande d'autoriser les connexions entrantes pour « node », accepte.
+4. Connecte YouTube et Trakt **depuis le Mac**, sur `http://localhost:3000` : Google n'accepte pas d'adresse comme 192.168… comme retour de connexion. Dans Google Cloud et Trakt, ajoute `http://localhost:3000/api/google/callback` et `http://localhost:3000/api/trakt/callback`. Ensuite l'iPhone voit tout.
+
+Ce qui change par rapport à la version en ligne :
+- Pas de cron : l'édition se compose à la première visite, puis avec « Recomposer » dans Moi.
+- Le Mac doit rester allumé, sur le même Wi-Fi. Les données sont dans `.data/kawna.json`.
+- La garde iPhone fonctionne. Dans l'automatisation « Est fermée », mets l'adresse du Mac : `http://192.168.1.23:3000/fin`.
+
 ## Mettre en ligne (gratuit)
 
 1. Importer le dépôt sur [Vercel](https://vercel.com/new).
